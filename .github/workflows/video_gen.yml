@@ -14,7 +14,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        cache: 'pip'
 
     - name: Install PyTorch & Core Dependencies
       run: |
@@ -52,7 +51,7 @@ jobs:
         # Start tunnel in the background on port 8188
         python -c "from pyngrok import ngrok; print('Your Live WebUI URL is:', ngrok.connect(8188).public_url)"
         
-        # Launch ComfyUI in CPU mode (since standard GitHub Actions runners lack a GPU)
+        # Launch ComfyUI in CPU mode
         cd ComfyUI
         python main.py --listen 127.0.0.1 --port 8188 --cpu
         
