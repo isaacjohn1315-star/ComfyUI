@@ -1,0 +1,58 @@
+name: Free Video Generator Engine
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-engine:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install PyTorch & Core Dependencies
+      run: |
+        pip install torch torchvision torchaudio --index-url https://pytorch.org
+        pip install pyngrok
+
+    - name: Clone ComfyUI and Video Extensions
+      run: |
+        git clone https://github.com
+        cd ComfyUI
+        pip install -r requirements.txt
+        
+        # Clone AnimateDiff video generation repository extensions
+        cd custom_nodes
+        git clone https://github.com
+        git clone https://github.com
+
+    - name: Download Base Models & Video Weights
+      run: |
+        cd ComfyUI
+        # Download lightweight SD 1.5 base model
+        wget -O models/checkpoints/v1-5-pruned-emaonly.safetensors https://huggingface.co
+        
+        # Create directories and download AnimateDiff motion module
+        mkdir -p custom_nodes/ComfyUI-AnimateDiff-Evolved/models
+        wget -O custom_nodes/ComfyUI-AnimateDiff-Evolved/models/mm_sd_v15_v2.ckpt https://huggingface.co
+
+    - name: Start ngrok Tunnel & Launch Generator
+      env:
+        NGROK_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+      run: |
+        # Configure Ngrok
+        python -c "from pyngrok import ngrok; ngrok.set_auth_token('$NGROK_TOKEN')"
+        
+        # Start tunnel in the background on port 8188
+        python -c "from pyngrok import ngrok; print('Your Live WebUI URL is:', ngrok.connect(8188).public_url)"
+        
+        # Launch ComfyUI in CPU mode (since standard GitHub Actions runners lack a GPU)
+        cd ComfyUI
+        python main.py --listen 127.0.0.1 --port 8188 --cpu
+        
